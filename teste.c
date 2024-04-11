@@ -10,9 +10,11 @@ int inicio;
 int final;
 int tamanho_fila;
 int contador;
+pthread_mutex_t mtx;
 void imprime();
-void produtor();
-void consumidor();
+void *produtor();
+void *consumidor();
+void mutexManual(); //falta implementar
 
 void *printhello(void *threadid)
 {
@@ -24,8 +26,10 @@ void *printhello(void *threadid)
    pthread_exit(0);
 }
 
-void consumidor()
+void *consumidor(void *threadid)
 {
+
+   pthread_mutex_lock(&mtx);
    imprime();
 
    //estado inicial
@@ -35,10 +39,9 @@ void consumidor()
    if (contador == 0)
    {
       printf("nao tem oque ser consumido\n");
-      return;
-   }
+   }else{
 
-   if (fila[inicio] == 1)
+       if (fila[inicio] == 1)
    {
       fila[inicio] = 0;
 
@@ -64,24 +67,28 @@ void consumidor()
       printf("\nconsumiu");
       contador--;
    }
+  
+   }
+   
+   pthread_mutex_unlock(&mtx);
    //estado inicial
    //[0,1,1]
    //i=1
    //f=2
 }
 
-void produtor()
+void *produtor(void *threadid)
 {
+    pthread_mutex_lock(&mtx);
    imprime();
 
    //não pode produzir
    if (contador == tamanho_fila)
    {
       printf("produtor iria sobrescrever\n");
-      return;
-   }
+   }else{
 
-   //quando a fila está vazia
+//quando a fila está vazia
    //da para add aonde estou no inicio da fila
    if (fila[inicio] == 0)
    {
@@ -102,12 +109,15 @@ void produtor()
          {
             printf("TO SOBREESCREVENDO !!!!!!!!!!!!");
             final--;
-            return;
+            
+         }else{
+
+          fila[final] = 1;
+         printf("\nProduziu");
+         contador++;  
          }
 
-         fila[final] = 1;
-         printf("\nProduziu");
-         contador++;
+         
       }
       else
       {
@@ -118,14 +128,21 @@ void produtor()
          {
             printf("TO SOBREESCREVENDO !!!!!!!!!!!!");
             final = tamanho_fila - 1;
-            return;
-         }
-
+            
+         }else{
          fila[final] = 1;
          printf("\nProduziu");
-         contador++;
+         contador++;   
+         }
+
+         
       }
    }
+
+   }
+
+pthread_mutex_unlock(&mtx);
+   
 
    /*
 //estado inicial
@@ -184,6 +201,7 @@ int main(int argc, char **argv)
    tamanho_fila = 3;
    contador = 0;
 
+/*
    consumidor();
    produtor();
    consumidor();
@@ -199,22 +217,34 @@ int main(int argc, char **argv)
    produtor();
    consumidor();
    produtor();
-   consumidor();
-   /*
+   consumidor();*/
+   
 	pthread_t threads[NUM_THREADS];
 	long int rc, t;
 
+  pthread_mutex_init(&mtx, NULL);
 
 	for (t = 0; t < NUM_THREADS; t++) {
-		printf("In main: creating thread %d\n", t);
-		
-		rc = pthread_create(&threads[t], NULL, printhello, (void *)t);
-		if (rc) {
-			printf("ERROR code is %d\n", rc);
+      if(t%2==0){
+         printf("Criando Produtor !!!!\n");
+         rc = pthread_create(&threads[t], NULL, produtor, (void *)t);
+		   if (rc) {
+			printf("ERROR code is %d\n", (int)rc);
 			return -1;
-		}
+		   }
+      }else{
+
+        printf("Criando Consumidor !!!!\n");
+         rc = pthread_create(&threads[t], NULL, consumidor, (void *)t);
+		   if (rc) {
+			printf("ERROR code is %d\n",(int) rc);
+			return -1;
+		   }
+
+
+      }
 	}
 	
 	pthread_exit(0);
-   */
+   
 }
