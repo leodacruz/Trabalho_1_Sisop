@@ -11,240 +11,146 @@ int final;
 int tamanho_fila;
 int contador;
 pthread_mutex_t mtx;
-void imprime();
+
 void *produtor();
 void *consumidor();
 void mutexManual(); //falta implementar
 
-void *printhello(void *threadid)
-{
-   int tid;
 
-   tid = (int)(long int)threadid;
-   printf("Hello World! It's me, thread #%d!\n", tid);
+void mutexManual(){
 
-   pthread_exit(0);
 }
+
+
 
 void *consumidor(void *threadid)
 {
+   int confirmaConsumo=1;                 //Confirmar que consumiu o recurso
+   int tid = (int)(long int)threadid;     //ID da Thread pro Print
 
-   pthread_mutex_lock(&mtx);
-   imprime();
+   
+   while(confirmaConsumo){                //fica num loop até a thread consumir o recurso
 
-   //estado inicial
-   //[1,1,1]
-   //i=0
-   //f=2
-   if (contador == 0)
-   {
-      printf("nao tem oque ser consumido\n");
-   }else{
+      while(!contador>0);                 //Parar o Consumidor
 
-       if (fila[inicio] == 1)
-   {
-      fila[inicio] = 0;
-
-      if(inicio!=final){
-
-      if (inicio + 1 < tamanho_fila)
-      {
-         inicio++;
-      }
-      else
-      {
-         if(fila[0]==1){
-           inicio = 0; 
-         }
-         
-      }
-
-
-      }
-
-      
-
-      printf("\nconsumiu");
-      contador--;
-   }
+   pthread_mutex_lock(&mtx);              //Inicio da seção critica
   
+   if (fila[inicio] == 1)                 //ve se da para consumir o recurso da fila
+   {
+      fila[inicio] = 0;                   //ato do consumo
+
+      if(inicio!=final){                  //posicionar o inicio da fila
+
+         if (inicio + 1 < tamanho_fila)
+         {
+            inicio++;
+         }
+         else
+         {
+            if(fila[0]==1){
+            inicio = 0; 
+            }
+         }
+      }
+
+      contador--;                         // controle de recursos
+      confirmaConsumo=0;                  // sair do primeiro loop
+      
+      printf("Consumidor ID: %d Consumiu o recurso\n",tid);
+   }
+   
+   //quando entra, mas não da para consumir
+   if(confirmaConsumo==1){
+      printf("-> [Consumidor ID: %d Não Consumiu o recurso!]\n",tid);  
    }
    
    pthread_mutex_unlock(&mtx);
-   //estado inicial
-   //[0,1,1]
-   //i=1
-   //f=2
+   }
+   
+
 }
 
 void *produtor(void *threadid)
 {
-    pthread_mutex_lock(&mtx);
-   imprime();
-
-   //não pode produzir
-   if (contador == tamanho_fila)
-   {
-      printf("produtor iria sobrescrever\n");
-   }else{
-
-//quando a fila está vazia
-   //da para add aonde estou no inicio da fila
-   if (fila[inicio] == 0)
-   {
-      fila[final] = 1;
-      printf("\nProduziu");
-      contador++;
-   }
-   else
-   {
-
-      if ((final + 1) < tamanho_fila)
-      {
-         //vejo se não preciso apontar o F para o inicio novamente
-
-         final++;
-
-         if (final == inicio)
-         {
-            printf("TO SOBREESCREVENDO !!!!!!!!!!!!");
-            final--;
-            
-         }else{
-
-          fila[final] = 1;
-         printf("\nProduziu");
-         contador++;  
-         }
-
-         
-      }
-      else
-      {
-         //volto pro inicio do vetor
-         final = 0;
-
-         if (final == inicio)
-         {
-            printf("TO SOBREESCREVENDO !!!!!!!!!!!!");
-            final = tamanho_fila - 1;
-            
-         }else{
-         fila[final] = 1;
-         printf("\nProduziu");
-         contador++;   
-         }
-
-         
-      }
-   }
-
-   }
-
-pthread_mutex_unlock(&mtx);
+   int confirmaproducao=1;                   //Confirmar que produziu o recurso
+   int tid = (int)(long int)threadid;        //ID da Thread pro Print
    
 
-   /*
-//estado inicial
-//[1,0,0]
-//i=0
-//f=0
 
-if(inicio==final && fila[inicio]==1){
-   final++;
-   fila[final]=1;
-   printf("\nProduziu");
-   return;
-}
+   while(confirmaproducao){                  //fica num loop até o thread produzir o recurso
 
-//estado inicial
-//[1,1,0]
-//i=0
-//f=1
+      while(contador==tamanho_fila);         //Parar o Consumidor
 
-//apontar para a proxima posição
+   pthread_mutex_lock(&mtx);                 //Inicio da seção critica
 
-if((final+1) < tamanho_fila){
-   //vejo se não preciso apontar o F para o inicio novamente
-   final++;
-   fila[final]=1;
-   printf("\nProduziu");
-   return;
-}
-//estado inicial
-//[1,1,1]
-//i=0
-//f=2
-*/
-}
-
-void imprime()
-{
-   //imprime a fila, com o seus itens
-
-   printf("\nFila-> ");
-
-   for (int i = 0; i < tamanho_fila; i++)
-   {
-      printf(": %d :", fila[i]);
+   
+   if(contador==tamanho_fila){              //Controle para threads que sairam do loop ao mesmo tempo
+      printf("-> [Produtor %d Não produziu o conteudo!]\n",tid);
+   }else{
+      
+      if (fila[inicio] == 0)                //Fila vazia
+      {
+         fila[final] = 1;                   //Ato de produzir recurso
+         contador++;                        //Controle de Recurso    
+         confirmaproducao=0;                      
+         printf("Produtor ID: %d produziu o recurso\n",tid);
+      }
+         else                               //Fila está com algum recurso
+         {
+            if ((final + 1) < tamanho_fila)  //Se o final da fila não esta na ultima pos vetor
+            {
+               final++;                      //ponteiro do final move para o prox posicao vetor
+               fila[final] = 1;              //ato de produzir
+               contador++;                   //Controle de  Recurso
+               confirmaproducao=0;
+               printf("Produtor ID: %d produziu o recurso\n",tid);  
+            }
+               else
+               {
+                  final = 0;                    //volto pro inicio do vetor
+                  fila[final] = 1;              //ato de produzir
+                  contador++;                   //Controle de  Recurso
+                  confirmaproducao=0; 
+                  printf("Produtor ID: %d produziu o recurso\n",tid);  
+               }
+         }
    }
-   printf("\n");
 
-   printf("inicio %d   Final  %d   Contador  %d\n", inicio, final, contador);
+   pthread_mutex_unlock(&mtx);
+
+   } 
 }
 
 int main(int argc, char **argv)
 {
-   //valores inciais das variaveis
+ 
    inicio = 0;
    final = 0;
    tamanho_fila = 3;
    contador = 0;
 
-/*
-   consumidor();
-   produtor();
-   consumidor();
-   produtor();
-   consumidor();
-   consumidor();
-   produtor();
-   consumidor();
-   produtor();
-   consumidor();
-   produtor();
-   consumidor();
-   produtor();
-   consumidor();
-   produtor();
-   consumidor();*/
-   
 	pthread_t threads[NUM_THREADS];
 	long int rc, t;
 
-  pthread_mutex_init(&mtx, NULL);
-
+   pthread_mutex_init(&mtx, NULL);
+   
+   //Criação daas Threads
 	for (t = 0; t < NUM_THREADS; t++) {
-      if(t%2==0){
-         printf("Criando Produtor !!!!\n");
+      if(t<5){
+         printf("Criando Produtor ID: %d\n",t);
          rc = pthread_create(&threads[t], NULL, produtor, (void *)t);
-		   if (rc) {
-			printf("ERROR code is %d\n", (int)rc);
-			return -1;
-		   }
       }else{
-
-        printf("Criando Consumidor !!!!\n");
+         printf("Criando Consumidor ID: %d\n",t);
          rc = pthread_create(&threads[t], NULL, consumidor, (void *)t);
-		   if (rc) {
+      }
+
+      if (rc) {
 			printf("ERROR code is %d\n",(int) rc);
 			return -1;
-		   }
-
-
-      }
+		}
 	}
-	
+
+
 	pthread_exit(0);
    
 }
