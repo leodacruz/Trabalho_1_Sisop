@@ -1,15 +1,16 @@
 #define NUM_THREADS 10
+#define TAMANHO_FILA 5
 
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-int fila[3];
+
 int inicioFila;
 int finalFila;
-int tamanhoFila;
 int contadorFila;
+int fila[TAMANHO_FILA];
 pthread_mutex_t mtx;
 
 void *produtor();
@@ -33,7 +34,7 @@ void *consumidor(void *threadid)
 
       if(inicioFila!=finalFila){                  //posicionar o inicio da fila
 
-         if (inicioFila + 1 < tamanhoFila)
+         if (inicioFila + 1 < TAMANHO_FILA)
          {
             inicioFila++;
          }
@@ -71,12 +72,12 @@ void *produtor(void *threadid)
 
    while(confirmaproducao){                  //fica num loop até o thread produzir o recurso
 
-      while(contadorFila==tamanhoFila);         //Parar o Consumidor
+      while(contadorFila==TAMANHO_FILA);         //Parar o Consumidor
 
    pthread_mutex_lock(&mtx);                 //Inicio da seção critica
 
    
-   if(contadorFila==tamanhoFila){              //Controle para threads que sairam do loop ao mesmo tempo
+   if(contadorFila==TAMANHO_FILA){              //Controle para threads que sairam do loop ao mesmo tempo
       printf("-> [Produtor %d Não produziu o conteudo!]\n",tid);
    }else{
       
@@ -89,7 +90,7 @@ void *produtor(void *threadid)
       }
          else                               //Fila está com algum recurso
          {
-            if ((finalFila + 1) < tamanhoFila)  //Se o finalFila da fila não esta na ultima pos vetor
+            if ((finalFila + 1) < TAMANHO_FILA)  //Se o finalFila da fila não esta na ultima pos vetor
             {
                finalFila++;                      //ponteiro do finalFila move para o prox posicao vetor
                fila[finalFila] = 1;              //ato de produzir
@@ -118,7 +119,6 @@ int main(int argc, char **argv)
  
    inicioFila = 0;
    finalFila = 0;
-   tamanhoFila = 3;
    contadorFila = 0;
 
 	pthread_t threads[NUM_THREADS];
@@ -128,19 +128,12 @@ int main(int argc, char **argv)
    
    //Criação daas Threads
 	for (t = 0; t < NUM_THREADS; t++) {
-      if(t<5){
+      if(t<(NUM_THREADS/2)){
         printf("Criando Consumidor ID: %d\n",(int)t);
         rc = pthread_create(&threads[t], NULL, consumidor, (void *)t);
-
-        // printf("Criando Produtor ID: %d\n",(int)t);
-        // rc = pthread_create(&threads[t], NULL, produtor, (void *)t);
       }else{
-          
          printf("Criando Produtor ID: %d\n",(int)t);
          rc = pthread_create(&threads[t], NULL, produtor, (void *)t);
-         
-        // printf("Criando Consumidor ID: %d\n",(int)t);
-        // rc = pthread_create(&threads[t], NULL, consumidor, (void *)t);
       }
 
       if (rc) {
@@ -149,7 +142,5 @@ int main(int argc, char **argv)
 		}
 	}
 
-
 	pthread_exit(0);
-   
 }
